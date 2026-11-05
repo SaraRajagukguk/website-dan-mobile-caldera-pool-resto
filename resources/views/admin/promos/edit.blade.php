@@ -329,13 +329,13 @@
                     <div class="col-md-6 mb-0">
                         <label class="form-label">Tanggal Mulai <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="start_date" class="form-control @error('start_date') is-invalid @enderror"
-                               value="{{ old('start_date', date('Y-m-d\TH:i', strtotime($promo->start_date))) }}" required>
+                               value="{{ old('start_date', $promo->start_date->copy()->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i')) }}" required>
                         @error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6 mb-0">
                         <label class="form-label">Tanggal Selesai <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="end_date" class="form-control @error('end_date') is-invalid @enderror"
-                               value="{{ old('end_date', date('Y-m-d\TH:i', strtotime($promo->end_date))) }}" required>
+                               value="{{ old('end_date', $promo->end_date->copy()->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i')) }}" required>
                         @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>

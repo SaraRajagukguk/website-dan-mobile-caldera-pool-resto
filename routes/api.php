@@ -17,6 +17,7 @@ Route::post('/login',    [AuthController::class, 'login']);
 Route::get('/menus',          [App\Http\Controllers\Api\MenuController::class,        'index']);
 Route::get('/menus/{id}',     [App\Http\Controllers\Api\MenuController::class,        'show']);
 Route::get('/promos',         [App\Http\Controllers\Api\PromoController::class,       'index']);
+Route::get('/promos/{slug}',  [App\Http\Controllers\Api\PromoController::class,       'show']);
 Route::get('/gallery',        [App\Http\Controllers\Api\GalleryController::class,     'index']);
 Route::get('/testimonials',   [App\Http\Controllers\Api\TestimonialController::class, 'index']);
 

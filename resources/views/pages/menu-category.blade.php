@@ -36,11 +36,17 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="fw-bold mb-0">{{ $menu->name }}</h5>
-                        <span class="text-primary fw-bold">Rp {{ number_format($menu->price, 0, ',', '.') }}</span>
+                        <span class="text-primary fw-bold">Rp. {{ number_format($menu->price, 0, ',', '.') }}</span>
                     </div>
                     <p class="text-muted small">{{ Str::limit($menu->description, 100) }}</p>
                 </div>
-                
+                <div class="card-footer bg-transparent border-0 pt-0 pb-3">
+                    <a href="{{ route('branding.menu.show', $menu) }}"
+                       class="btn btn-menu-detail w-100"
+                       aria-label="Lihat detail {{ $menu->name }}">
+                        Lihat Detail <i class="fas fa-arrow-right ms-2" aria-hidden="true"></i>
+                    </a>
+                </div>
             </div>
         </div>
         @empty
@@ -57,3 +63,7 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<link href="{{ asset('css/menu.css') }}" rel="stylesheet">
+@endpush

@@ -1,84 +1,61 @@
 @extends('layouts.app')
 
-@section('title', $menu->name)
+@section('title', $menu->name . ' - Caldera')
+
+@push('styles')
+<link href="{{ asset('css/menu.css') }}" rel="stylesheet">
+@endpush
 
 @section('content')
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-6 mb-4">
-            @if($menu->image)
-                <img src="{{ asset('storage/' . $menu->image) }}" class="img-fluid rounded-4 shadow-lg" alt="{{ $menu->name }}">
-            @else
-                <div class="bg-secondary d-flex align-items-center justify-content-center rounded-4 shadow-lg" style="height: 400px;">
-                    <i class="fas fa-utensils fa-5x text-white"></i>
+<div class="container py-5 menu-detail-page">
+    <a href="{{ route('branding.menu') }}" class="menu-detail-back mb-4">
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Kembali ke Menu
+    </a>
+
+    <div class="menu-detail-card">
+        <div class="row g-0">
+            <div class="col-lg-6">
+                <div class="menu-detail-media">
+                    @if($menu->image)
+                        <img src="{{ asset('storage/' . $menu->image) }}" alt="{{ $menu->name }}">
+                    @else
+                        <i class="fas fa-utensils menu-detail-placeholder" aria-hidden="true"></i>
+                    @endif
                 </div>
-            @endif
-        </div>
-        <div class="col-lg-6">
-            <div class="mb-3">
-                <span class="badge bg-primary">{{ ucfirst($menu->category) }}</span>
-                @if($menu->is_recommended)
-                    <span class="badge bg-success">Recommended</span>
-                @endif
-                @if($menu->is_available)
-                    <span class="badge bg-info">Tersedia</span>
-                @else
-                    <span class="badge bg-secondary">Habis</span>
-                @endif
             </div>
-            <h1 class="display-5 fw-bold mb-3">{{ $menu->name }}</h1>
-            <p class="text-secondary mb-4">{{ $menu->description }}</p>
-            <h2 class="text-primary fw-bold mb-4">Rp {{ number_format($menu->price, 0, ',', '.') }}</h2>
-            
-            <div class="d-flex gap-3">
-                <div class="input-group" style="width: 150px;">
-                    <button class="btn btn-outline-secondary" type="button" onclick="decrement()">-</button>
-                    <input type="number" id="quantity" class="form-control text-center" value="1" min="1" max="99">
-                    <button class="btn btn-outline-secondary" type="button" onclick="increment()">+</button>
-                </div>
-                <button class="btn btn-primary btn-lg px-4" onclick="addToCart()">
-                    <i class="fas fa-shopping-cart me-2"></i>Pesan Sekarang
-                </button>
-            </div>
-            
-            <hr class="my-4">
-            
-            <div class="row">
-                <div class="col-6">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fas fa-clock text-primary fa-2x"></i>
-                        <div>
-                            <small class="text-muted">Waktu Penyajian</small>
-                            <p class="mb-0 fw-bold">15-20 Menit</p>
-                        </div>
+            <div class="col-lg-6">
+                <div class="menu-detail-body">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="menu-detail-badge">
+                            <i class="fas fa-utensils" aria-hidden="true"></i> {{ ucfirst($menu->category) }}
+                        </span>
+                        @if($menu->is_recommended)
+                            <span class="menu-detail-badge">
+                                <i class="fas fa-star" aria-hidden="true"></i> Recommended
+                            </span>
+                        @endif
+                        <span class="menu-detail-badge {{ $menu->is_available ? 'is-available' : 'is-unavailable' }}">
+                            <i class="fas {{ $menu->is_available ? 'fa-check-circle' : 'fa-minus-circle' }}" aria-hidden="true"></i>
+                            {{ $menu->is_available ? 'Tersedia' : 'Habis' }}
+                        </span>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fas fa-tag text-primary fa-2x"></i>
-                        <div>
-                            <small class="text-muted">Kategori</small>
-                            <p class="mb-0 fw-bold">{{ ucfirst($menu->category) }}</p>
-                        </div>
+
+                    <h1 class="menu-detail-title">{{ $menu->name }}</h1>
+                    <div class="menu-detail-divider"></div>
+                    <p class="menu-detail-description mb-0">{{ $menu->description }}</p>
+
+                    <div class="menu-detail-price-box">
+                        <span class="text-muted small">Harga Menu</span>
+                        <strong class="menu-detail-price">Rp. {{ number_format($menu->price, 0, ',', '.') }}</strong>
                     </div>
+
+                    <a href="{{ route('branding.menu.category', $menu->category) }}" class="btn btn-menu-detail w-100 mt-4">
+                        Lihat Menu {{ ucfirst($menu->category) }} Lainnya
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-    function increment() {
-        let qty = document.getElementById('quantity');
-        qty.value = parseInt(qty.value) + 1;
-    }
-    function decrement() {
-        let qty = document.getElementById('quantity');
-        if (parseInt(qty.value) > 1) qty.value = parseInt(qty.value) - 1;
-    }
-    function addToCart() {
-        let qty = document.getElementById('quantity').value;
-        alert('{{ $menu->name }} (' + qty + 'x) ditambahkan ke keranjang!');
-    }
-</script>
 @endsection

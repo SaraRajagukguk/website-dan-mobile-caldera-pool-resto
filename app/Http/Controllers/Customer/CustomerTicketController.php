@@ -1,15 +1,15 @@
 <?php
+
 // app/Http/Controllers/Customer/CustomerTicketController.php
 
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\PoolTicket;
-use App\Models\Promo;
 use App\Models\User;
-use App\Notifications\TicketNotification;
 use App\Notifications\AdminNewTicketNotification;
-use App\Services\PromoServiceClient;
+use App\Notifications\TicketNotification;
+use App\Services\PromoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +19,7 @@ class CustomerTicketController extends Controller
 {
     protected $promoService;
 
-    public function __construct(PromoServiceClient $promoService)
+    public function __construct(PromoService $promoService)
     {
         $this->promoService = $promoService;
     }
@@ -45,9 +45,9 @@ class CustomerTicketController extends Controller
     public function create()
     {
         $ticketPrices = [
-            'adult'  => 35000,
-            'child'  => 25000,
-            'family' => 100000
+            'adult' => 35000,
+            'child' => 25000,
+            'family' => 100000,
         ];
 
         return view('reservation.ticket.create', compact('ticketPrices'));
@@ -56,25 +56,25 @@ class CustomerTicketController extends Controller
     public function calculate(Request $request)
     {
         $validated = $request->validate([
-            'ticket_type'       => 'required|in:adult,child,family',
+            'ticket_type' => 'required|in:adult,child,family',
             'number_of_tickets' => 'required|integer|min:1',
-            'visit_date'        => 'required|date|after_or_equal:today'
+            'visit_date' => 'required|date|after_or_equal:today',
         ]);
 
         $prices = [
-            'adult'  => 35000,
-            'child'  => 25000,
-            'family' => 100000
+            'adult' => 35000,
+            'child' => 25000,
+            'family' => 100000,
         ];
 
         $pricePerTicket = $prices[$validated['ticket_type']];
-        $total          = $pricePerTicket * $validated['number_of_tickets'];
-        $capacity       = PoolTicket::checkCapacity($validated['visit_date']);
+        $total = $pricePerTicket * $validated['number_of_tickets'];
+        $capacity = PoolTicket::checkCapacity($validated['visit_date']);
 
         return response()->json([
             'price_per_ticket' => $pricePerTicket,
-            'total'            => $total,
-            'capacity'         => $capacity
+            'total' => $total,
+            'capacity' => $capacity,
         ]);
     }
 
@@ -82,63 +82,60 @@ class CustomerTicketController extends Controller
     {
         try {
             Log::info('Ticket purchase request', $request->all());
-            
+
             $validated = $request->validate([
-                'customer_name'     => 'required|string|max:255',
-                'customer_email'    => 'required|email|max:255',
-                'customer_phone'   => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
-                'visit_date'        => 'required|date|after_or_equal:today',
-                'visit_time'        => 'nullable',
-                'ticket_type'       => 'required|in:adult,child,family',
+                'customer_name' => 'required|string|max:255',
+                'customer_email' => 'required|email|max:255',
+                'customer_phone' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
+                'visit_date' => 'required|date|after_or_equal:today',
+                'visit_time' => 'nullable',
+                'ticket_type' => 'required|in:adult,child,family',
                 'number_of_tickets' => 'required|integer|min:1',
-                'promo_code'        => 'nullable|string',
+                'promo_code' => 'nullable|string',
             ]);
 
             $capacity = PoolTicket::checkCapacity($validated['visit_date']);
 
             if ($capacity['available'] < $validated['number_of_tickets']) {
-                return back()->withInput()->with('error', 'Maaf, tiket tidak tersedia untuk tanggal tersebut. Sisa tiket: ' . $capacity['available']);
+                return back()->withInput()->with('error', 'Maaf, tiket tidak tersedia untuk tanggal tersebut. Sisa tiket: '.$capacity['available']);
             }
 
             $prices = [
-                'adult'  => 35000,
-                'child'  => 25000,
-                'family' => 100000
+                'adult' => 35000,
+                'child' => 25000,
+                'family' => 100000,
             ];
 
             $pricePerTicket = $prices[$validated['ticket_type']];
             $totalAmount = $pricePerTicket * $validated['number_of_tickets'];
             $discountAmount = 0;
-
-            // 🔥 CEK PROMO DENGAN TRANSACTION_TYPE = 'ticket'
-            if ($request->filled('promo_code')) {
-                try {
-                    $result = $this->promoService->validatePromo(
-                        $request->promo_code, 
-                        $totalAmount,
-                        'ticket'  // 🔥 TAMBAHKAN PARAMETER INI
-                    );
-                    
-                    if ($result && isset($result['valid']) && $result['valid']) {
-                        $discountAmount = $result['discount_amount'];
-                        $totalAmount = $result['final_amount'] ?? ($totalAmount - $discountAmount);
-                    } else {
-                        return back()->withInput()->with('error', $result['message'] ?? 'Kode promo tidak valid');
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Promo validation error', ['message' => $e->getMessage()]);
-                }
-            }
+            $promo = null;
 
             DB::beginTransaction();
 
-            $ticketCode = 'TKT-' . strtoupper(uniqid());
+            if ($request->filled('promo_code')) {
+                $result = $this->promoService->validatePromo(
+                    $validated['promo_code'], $totalAmount, 'ticket', lockForUpdate: true
+                );
+
+                if (! $result['valid']) {
+                    DB::rollBack();
+
+                    return back()->withInput()->with('error', $result['message']);
+                }
+
+                $promo = $result['promo'];
+                $discountAmount = $result['discount_amount'];
+                $totalAmount = $result['final_amount'];
+            }
+
+            $ticketCode = 'TKT-'.strtoupper(uniqid());
             while (PoolTicket::where('ticket_code', $ticketCode)->exists()) {
-                $ticketCode = 'TKT-' . strtoupper(uniqid());
+                $ticketCode = 'TKT-'.strtoupper(uniqid());
             }
 
             $userId = Auth::check() ? Auth::id() : null;
-            if (!$userId) {
+            if (! $userId) {
                 $existingUser = User::where('email', $validated['customer_email'])->first();
                 if ($existingUser) {
                     $userId = $existingUser->id;
@@ -146,20 +143,24 @@ class CustomerTicketController extends Controller
             }
 
             $ticket = PoolTicket::create([
-                'ticket_code'       => $ticketCode,
-                'customer_name'     => $validated['customer_name'],
-                'customer_email'    => $validated['customer_email'],
-                'customer_phone'    => $validated['customer_phone'],
-                'visit_date'        => $validated['visit_date'],
-                'visit_time'        => $validated['visit_time'] ?? null,
-                'ticket_type'       => $validated['ticket_type'],
+                'ticket_code' => $ticketCode,
+                'customer_name' => $validated['customer_name'],
+                'customer_email' => $validated['customer_email'],
+                'customer_phone' => $validated['customer_phone'],
+                'visit_date' => $validated['visit_date'],
+                'visit_time' => $validated['visit_time'] ?? null,
+                'ticket_type' => $validated['ticket_type'],
                 'number_of_tickets' => $validated['number_of_tickets'],
-                'price_per_ticket'  => $pricePerTicket,
-                'total_amount'      => $totalAmount,
-                'payment_status'    => 'unpaid',
-                'status'            => 'pending',
-                'user_id'           => $userId,
+                'price_per_ticket' => $pricePerTicket,
+                'total_amount' => $totalAmount,
+                'payment_status' => 'unpaid',
+                'status' => 'pending',
+                'user_id' => $userId,
             ]);
+
+            if ($promo) {
+                $promo->usePromo();
+            }
 
             DB::commit();
 
@@ -198,15 +199,15 @@ class CustomerTicketController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withInput()->withErrors($e->errors());
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Ticket purchase error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
-            return back()->withInput()->with('error', 'Gagal memesan tiket: ' . $e->getMessage());
+
+            return back()->withInput()->with('error', 'Gagal memesan tiket: '.$e->getMessage());
         }
     }
 
@@ -215,7 +216,7 @@ class CustomerTicketController extends Controller
         $ticket = PoolTicket::where('ticket_code', $ticketCode)
             ->where('user_id', Auth::id())
             ->firstOrFail();
-            
+
         return view('reservation.ticket.success', compact('ticket'));
     }
 
@@ -224,7 +225,7 @@ class CustomerTicketController extends Controller
         $ticket = PoolTicket::where('ticket_code', $ticketCode)
             ->where('user_id', Auth::id())
             ->firstOrFail();
-            
+
         return view('reservation.ticket.view', compact('ticket'));
     }
 
@@ -233,7 +234,7 @@ class CustomerTicketController extends Controller
         $request->validate([
             'payment_proof' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'bank_name' => 'required|string',
-            'account_name' => 'required|string'
+            'account_name' => 'required|string',
         ]);
 
         $ticket = PoolTicket::where('ticket_code', $ticketCode)
@@ -251,4 +252,4 @@ class CustomerTicketController extends Controller
 
         return redirect()->route('customer.tickets')->with('success', 'Bukti pembayaran diupload, menunggu verifikasi admin.');
     }
-}   
+}

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Promo extends Model
 {
@@ -25,7 +25,7 @@ class Promo extends Model
         'applicable_for',
         'max_usage',
         'used_count',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
@@ -35,7 +35,7 @@ class Promo extends Model
         'is_active' => 'boolean',
         'discount_value' => 'decimal:2',
         'min_purchase' => 'decimal:2',
-        'max_discount' => 'decimal:2'
+        'max_discount' => 'decimal:2',
     ];
 
     /**
@@ -44,8 +44,8 @@ class Promo extends Model
     public function menus()
     {
         return $this->belongsToMany(Menu::class, 'promo_menu')
-                    ->withPivot('special_price')
-                    ->withTimestamps();
+            ->withPivot('special_price')
+            ->withTimestamps();
     }
 
     /**
@@ -62,8 +62,8 @@ class Promo extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-                     ->where('start_date', '<=', now())
-                     ->where('end_date', '>=', now());
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now());
     }
 
     /**
@@ -79,7 +79,7 @@ class Promo extends Model
      */
     public function isValid()
     {
-        return $this->is_active && 
+        return $this->is_active &&
                now()->between($this->start_date, $this->end_date) &&
                ($this->max_usage === null || $this->used_count < $this->max_usage);
     }
@@ -90,24 +90,24 @@ class Promo extends Model
     public function calculateDiscount($amount)
     {
         $discount = 0;
-        
+
         if ($this->discount_type === 'percentage') {
             $discount = $amount * ($this->discount_value / 100);
         } else {
             $discount = $this->discount_value;
         }
-        
+
         // Batasi dengan max discount jika ada
         if ($this->max_discount && $discount > $this->max_discount) {
             $discount = $this->max_discount;
         }
-        
+
         // Batasi dengan min purchase
         if ($amount < $this->min_purchase) {
             $discount = 0;
         }
-        
-        return $discount;
+
+        return round(max(0, min($discount, $amount)), 2);
     }
 
     /**

@@ -49,6 +49,7 @@
                                        class="form-control admin-input @error('price') is-invalid @enderror"
                                        value="{{ old('price') }}" required>
                             </div>
+                            <div class="form-text">Masukkan harga dalam rupiah penuh, contoh: 22000 untuk Rp. 22.000.</div>
                             @error('price')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

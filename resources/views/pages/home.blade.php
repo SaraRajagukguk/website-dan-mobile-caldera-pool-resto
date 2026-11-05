@@ -147,7 +147,7 @@
                     </div>
                     <h5 class="fw-bold">{{ $menu->name }}</h5>
                     <p class="text-muted small">{{ Str::limit($menu->description, 60) }}</p>
-                    <div class="price">Rp {{ number_format($menu->price, 0, ',', '.') }}</div>
+                    <div class="price">Rp. {{ number_format($menu->price, 0, ',', '.') }}</div>
                 </div>
             </div>
             @empty

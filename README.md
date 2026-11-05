@@ -1,4 +1,29 @@
-HEAD
+# Caldera Resto & Pool — Laravel PA2
+
+Fitur promo berjalan dalam aplikasi Laravel PA2 dan database utama (`promos`). Admin, beranda, halaman promo, API, pengecekan kode, dan checkout tiket menggunakan database yang sama. Tidak perlu menjalankan `caldera-promo-microservice`, port 8083, atau mengisi `PROMO_SERVICE_URL`.
+
+Untuk menjalankan aplikasi, gunakan konfigurasi database PA2, jalankan `composer install`, `php artisan migrate`, lalu `composer run dev` (atau web server Laragon). Konfigurasi layanan lain tetap mengikuti `.env` lokal.
+
+Endpoint promo:
+
+- Admin: `/admin/promos` (memerlukan login admin/staff).
+- Publik: `/promos`, `/promos/{slug}`.
+- API: `GET /api/promos`, `GET /api/promos/{slug}`; respons `{success, data}`.
+- Pengecekan: `POST /check-promo` dengan `promo_code`, `total_amount`, dan `transaction_type` (`ticket`, `menu`, atau `reservation`). Pengecekan tidak menggunakan kuota; pemesanan tiket berhasil menambah kuota dalam transaksi database yang sama.
+
+Tanggal admin menggunakan Asia/Jakarta. Promo tanpa banner didukung oleh migrasi `2026_11_05_000001_make_promo_banner_image_nullable.php`.
+
+Jika promo lama berada di database terpisah pada server dan kredensial database yang sama, lakukan simulasi lalu impor:
+
+```sh
+php artisan promo:import caldera_promo_service --dry-run
+php artisan promo:import caldera_promo_service
+```
+
+Perintah membaca sumber tanpa mengubahnya, mencadangkan tabel sumber dan tujuan di `storage/app/private/promo-imports`, serta menjalankan impor dalam satu transaksi. Kode yang sudah ada dipertahankan dan dilaporkan; ID sumber tidak digunakan kembali. Slug yang bentrok untuk kode berbeda diberi akhiran. Perintah aman dijalankan ulang. Secara default tanggal sumber dianggap UTC (sesuai konfigurasi aplikasi microservice lama), lalu dikonversi ke zona waktu aplikasi; gunakan `--source-timezone=Asia/Jakarta` bila sumber memang menyimpan waktu Jakarta. Path banner dipertahankan; bila berkasnya hanya ada di server microservice, salin berkas tersebut ke storage publik PA2 sebelum mematikan server lama.
+
+Jalankan pengujian dengan `php artisan test`. Tes promo memakai SQLite terisolasi dan memastikan tidak ada HTTP keluar. Data/database microservice lama tetap tersedia sebagai cadangan dan tidak diperlukan oleh runtime PA2 setelah impor.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

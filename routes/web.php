@@ -253,11 +253,6 @@ Route::prefix('google')->name('google.')->group(function () {
 */
 Route::post('/check-promo', [App\Http\Controllers\Api\PromoCheckController::class, 'check'])->name('check.promo');
 
-Route::get('/test-microservice', function () {
-    $client = app(App\Services\PromoServiceClient::class);
-    return $client->getAll();
-});
-
 // 👇 ROUTE TEST TEMBAK PUSH NOTIFICATION 👇
 Route::get('/test-notif', function () {
     // 1. Cari user yang punya fcm_token
